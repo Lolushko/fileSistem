@@ -1,4 +1,6 @@
 const FileService = require('../services/file.service');
+const { getDirectorySize } = require('/Users/user/Desktop/file.server/lib/utils.js')
+
 
 class FileController {
 	constructor(fileService = new FileService()) {
@@ -7,10 +9,15 @@ class FileController {
 	async put(req, res) {
 		try {
 			const name = req.params.name; 
-			if (name === undefined) res.end('status: error- filename missing');
 			const {data, ...meta} = req.file; 
 			await this.service.put(name, data, meta);
-			res.json({status: 'ok'});
+			getDirectorySize().then(size => {
+				if (+size + +req.file.size > 1e+7) {
+					res.json({status: 'ok', Warning:` directory size ${+req.file.size + +size}`});
+				} else {
+					res.json({status: 'ok'});
+				}
+			});
 		} catch (err) {
 			res.json({status: 'error'});
 		}
@@ -20,7 +27,6 @@ class FileController {
 		try {
 			const name = req.params.name;
 			const {stream,  meta} = await this.service.get(name);
-			console.log(meta);
 			res.setHeader('content-type', meta.mimetype);
 			res.setHeader('content-length', meta.size); 
 			stream.pipe(res);
